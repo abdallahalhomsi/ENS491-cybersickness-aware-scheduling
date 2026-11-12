@@ -1,0 +1,20 @@
+# Raw / large datasets
+data/raw/
+*.zip
+*.pcap
+*.pcapng
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment / secrets
+.env
+
+# macOS
+.DS_Store
