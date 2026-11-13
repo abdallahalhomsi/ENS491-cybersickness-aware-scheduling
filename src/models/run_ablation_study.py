@@ -17,7 +17,7 @@ OUTPUT = Path("results/tables/questset_ablation_results.csv")
 
 df = pd.read_csv(DATA)
 
-TARGET = "post_ssq_total"
+TARGET = "delta_ssq_total"
 
 context_features = [
     "game_speed",

@@ -1,0 +1,2 @@
+risk_threshold,model,C,n_sessions,n_participants,n_high_risk,prevalence,roc_auc,pr_auc,balanced_accuracy,precision,recall,f1
+30.0,Logistic Regression,0.1,120,60,22,0.18333333333333332,0.6512059369202227,0.2387006552227951,0.661873840445269,0.2786885245901639,0.7727272727272727,0.40963855421686746
