@@ -1,0 +1,35 @@
++0.026836160s Received burst seq=0 of 296790 bytes transmitted at +0s
++0.077433280s Received burst seq=1 of 604654 bytes transmitted at +0.007468939s
++0.205800640s Received burst seq=3 of 628778 bytes transmitted at +0.064074993s
++0.358805120s Received burst seq=6 of 309838 bytes transmitted at +0.143448829s
++0.462003760s Received burst seq=9 of 16399 bytes transmitted at +0.193919658s
++0.467074000s Received burst seq=10 of 60570 bytes transmitted at +0.199119806s
++0.490903120s Received burst seq=11 of 284742 bytes transmitted at +0.201137781s
++0.590537760s Received burst seq=14 of 314916 bytes transmitted at +0.236860751s
++1.122252240s Received burst seq=30 of 10213 bytes transmitted at +0.454634666s
++1.127236000s Received burst seq=31 of 59543 bytes transmitted at +0.456621646s
++1.722367840s Received burst seq=50 of 13294 bytes transmitted at +0.729078533s
++1.842055840s Received burst seq=59 of 21534 bytes transmitted at +0.837361575s
++3.389587280s Received burst seq=155 of 6162 bytes transmitted at +2.38965225s
++4.183194000s Received burst seq=198 of 24639 bytes transmitted at +3.2026217s
++4.371034720s Received burst seq=211 of 13294 bytes transmitted at +3.37789512s
++5.328356400s Received burst seq=266 of 1027 bytes transmitted at +4.34070039s
++5.388270080s Received burst seq=273 of 1027 bytes transmitted at +4.40319038s
++5.861521920s Received burst seq=299 of 27720 bytes transmitted at +4.88720155s
++6.058656960s Received burst seq=310 of 8216 bytes transmitted at +5.0877893s
++7.953638000s Received burst seq=424 of 9186 bytes transmitted at +6.97814322s
++8.874178880s Received burst seq=485 of 22561 bytes transmitted at +7.90174866s
++9.606638880s Received burst seq=524 of 9267 bytes transmitted at +8.66641855s
++10.316902960s Received burst seq=569 of 5135 bytes transmitted at +9.36655855s
++10.873719920s Received burst seq=595 of 1027 bytes transmitted at +9.91344309s
++12.729521040s Received burst seq=695 of 2054 bytes transmitted at +11.8034666s
++12.899999360s Received burst seq=707 of 1027 bytes transmitted at +11.9473782s
++13.695940400s Received burst seq=754 of 14321 bytes transmitted at +12.7479708s
++13.779881920s Received burst seq=762 of 6162 bytes transmitted at +12.829006s
++16.502444400s Received burst seq=898 of 1027 bytes transmitted at +15.5792952s
++16.617963440s Received burst seq=907 of 6162 bytes transmitted at +15.7108421s
++18.302986720s Received burst seq=991 of 6162 bytes transmitted at +17.3820593s
++18.652892640s Received burst seq=1012 of 4108 bytes transmitted at +17.7260387s
+Total RX bursts: 1181/32
+Total RX fragments: 486484/212697
+Total RX bytes: 583070040/255141347
