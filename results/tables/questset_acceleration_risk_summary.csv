@@ -1,0 +1,2 @@
+model,feature_set,risk_threshold,C,n_features,n_sessions,n_participants,n_high_risk,prevalence,roc_auc,pr_auc,balanced_accuracy,precision,recall,f1
+Logistic Regression,1-minute acceleration only,30.0,0.1,3,120,60,22,0.18333333333333332,0.7166048237476809,0.2825627074536627,0.6873840445269017,0.30357142857142855,0.7727272727272727,0.4358974358974359

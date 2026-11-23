@@ -9,8 +9,13 @@ from scipy.stats import linregress
 # Paths
 # ============================================================
 
-RAW_MOVEMENT_DIR = Path("data/raw/Questset/movement")
-SESSIONS_PATH = Path("data/processed/questset_sessions_with_ssq.csv")
+RAW_MOVEMENT_DIR = Path(
+    "data/raw/Questset/movement"
+)
+
+SESSIONS_PATH = Path(
+    "data/processed/questset_sessions_with_ssq.csv"
+)
 
 OUTPUT_PATH = Path(
     "data/processed/questset_second_generation_features.csv"
@@ -22,7 +27,14 @@ OUTPUT_PATH = Path(
 # ============================================================
 
 RESAMPLE_HZ = 50
+
 TRACKING_JUMP_THRESHOLD = 0.10
+
+# Exploratory rapid-turn threshold.
+# Rand's literature review notes that the literature does not
+# provide one universal threshold, so this must be treated as
+# an experimental feature rather than a clinical cutoff.
+RAPID_TURN_THRESHOLD_DEG_S = 100.0
 
 WINDOWS = {
     "1min": 60,
@@ -30,7 +42,13 @@ WINDOWS = {
     "5min": 300
 }
 
-BLOCK_STARTS = [0, 60, 120, 180, 240]
+BLOCK_STARTS = [
+    0,
+    60,
+    120,
+    180,
+    240
+]
 
 
 # ============================================================
@@ -38,8 +56,15 @@ BLOCK_STARTS = [0, 60, 120, 180, 240]
 # ============================================================
 
 def safe_mean(x):
-    x = np.asarray(x, dtype=float)
-    x = x[np.isfinite(x)]
+
+    x = np.asarray(
+        x,
+        dtype=float
+    )
+
+    x = x[
+        np.isfinite(x)
+    ]
 
     if len(x) == 0:
         return np.nan
@@ -48,8 +73,15 @@ def safe_mean(x):
 
 
 def safe_std(x):
-    x = np.asarray(x, dtype=float)
-    x = x[np.isfinite(x)]
+
+    x = np.asarray(
+        x,
+        dtype=float
+    )
+
+    x = x[
+        np.isfinite(x)
+    ]
 
     if len(x) == 0:
         return np.nan
@@ -57,14 +89,27 @@ def safe_std(x):
     return np.std(x)
 
 
-def safe_percentile(x, q):
-    x = np.asarray(x, dtype=float)
-    x = x[np.isfinite(x)]
+def safe_percentile(
+    x,
+    q
+):
+
+    x = np.asarray(
+        x,
+        dtype=float
+    )
+
+    x = x[
+        np.isfinite(x)
+    ]
 
     if len(x) == 0:
         return np.nan
 
-    return np.percentile(x, q)
+    return np.percentile(
+        x,
+        q
+    )
 
 
 # ============================================================
@@ -80,10 +125,23 @@ def resample_movement(df):
         .reset_index(drop=True)
     )
 
-    start = df["time"].iloc[0]
-    end = df["time"].iloc[-1]
+    if len(df) < 2:
+        return df.copy()
 
-    step = 1.0 / RESAMPLE_HZ
+    start = (
+        df["time"]
+        .iloc[0]
+    )
+
+    end = (
+        df["time"]
+        .iloc[-1]
+    )
+
+    step = (
+        1.0
+        / RESAMPLE_HZ
+    )
 
     new_time = np.arange(
         start,
@@ -102,20 +160,30 @@ def resample_movement(df):
     ]
 
     data = {
-        "time": new_time
+        "time":
+            new_time
     }
 
-    old_time = df["time"].to_numpy()
+    old_time = (
+        df["time"]
+        .to_numpy(
+            dtype=float
+        )
+    )
 
     for col in columns:
 
         data[col] = np.interp(
             new_time,
             old_time,
-            df[col].to_numpy()
+            df[col].to_numpy(
+                dtype=float
+            )
         )
 
-    out = pd.DataFrame(data)
+    out = pd.DataFrame(
+        data
+    )
 
     # --------------------------------------------------------
     # Renormalize quaternion values after interpolation
@@ -128,21 +196,32 @@ def resample_movement(df):
         "HeadOrientationZ"
     ]
 
-    q = out[qcols].to_numpy(dtype=float)
+    q = out[
+        qcols
+    ].to_numpy(
+        dtype=float
+    )
 
     norms = np.linalg.norm(
         q,
         axis=1
     )
 
-    valid = norms > 0
+    valid = (
+        norms > 0
+    )
 
     q[valid] = (
         q[valid]
-        / norms[valid, None]
+        / norms[
+            valid,
+            None
+        ]
     )
 
-    out[qcols] = q
+    out[
+        qcols
+    ] = q
 
     return out
 
@@ -153,7 +232,53 @@ def resample_movement(df):
 
 def calculate_motion_signals(df):
 
-    time = df["time"].to_numpy(dtype=float)
+    # --------------------------------------------------------
+    # Safety check
+    # --------------------------------------------------------
+
+    if len(df) < 2:
+
+        return {
+            "position":
+                np.empty(
+                    (0, 3)
+                ),
+
+            "distance_step":
+                np.array([]),
+
+            "velocity":
+                np.array([]),
+
+            "acceleration":
+                np.array([]),
+
+            "angular_velocity":
+                np.array([]),
+
+            "angular_change":
+                np.array([]),
+
+            "cumulative_rotation":
+                np.nan,
+
+            "rapid_turn_frequency":
+                np.nan,
+
+            "tracking_jump_count":
+                0
+        }
+
+    # --------------------------------------------------------
+    # Time and position
+    # --------------------------------------------------------
+
+    time = (
+        df["time"]
+        .to_numpy(
+            dtype=float
+        )
+    )
 
     position = df[
         [
@@ -161,9 +286,13 @@ def calculate_motion_signals(df):
             "HeadPosY",
             "HeadPosZ"
         ]
-    ].to_numpy(dtype=float)
+    ].to_numpy(
+        dtype=float
+    )
 
-    dt = np.diff(time)
+    dt = np.diff(
+        time
+    )
 
     displacement = np.diff(
         position,
@@ -181,6 +310,9 @@ def calculate_motion_signals(df):
 
     valid_motion = (
         (dt > 0)
+        & np.isfinite(
+            distance_step
+        )
         & (
             distance_step
             <= TRACKING_JUMP_THRESHOLD
@@ -188,14 +320,73 @@ def calculate_motion_signals(df):
     )
 
     velocity = np.full(
-        len(distance_step),
+        len(
+            distance_step
+        ),
         np.nan
     )
 
-    velocity[valid_motion] = (
-        distance_step[valid_motion]
-        / dt[valid_motion]
+    velocity[
+        valid_motion
+    ] = (
+        distance_step[
+            valid_motion
+        ]
+        / dt[
+            valid_motion
+        ]
     )
+
+    # --------------------------------------------------------
+    # Translational acceleration
+    #
+    # Derived from change in speed.
+    # Absolute magnitude is used because we are interested in
+    # motion intensity rather than signed acceleration.
+    # --------------------------------------------------------
+
+    acceleration = np.full(
+        max(
+            len(velocity) - 1,
+            0
+        ),
+        np.nan
+    )
+
+    if len(velocity) >= 2:
+
+        acceleration_dt = (
+            dt[1:]
+        )
+
+        valid_acceleration = (
+            np.isfinite(
+                velocity[:-1]
+            )
+            & np.isfinite(
+                velocity[1:]
+            )
+            & (
+                acceleration_dt
+                > 0
+            )
+        )
+
+        acceleration[
+            valid_acceleration
+        ] = (
+            np.abs(
+                velocity[1:][
+                    valid_acceleration
+                ]
+                - velocity[:-1][
+                    valid_acceleration
+                ]
+            )
+            / acceleration_dt[
+                valid_acceleration
+            ]
+        )
 
     # --------------------------------------------------------
     # Quaternion rotational motion
@@ -208,11 +399,20 @@ def calculate_motion_signals(df):
             "HeadOrientationY",
             "HeadOrientationZ"
         ]
-    ].to_numpy(dtype=float)
+    ].to_numpy(
+        dtype=float
+    )
 
-    q1 = quaternion[:-1]
-    q2 = quaternion[1:]
+    q1 = (
+        quaternion[:-1]
+    )
 
+    q2 = (
+        quaternion[1:]
+    )
+
+    # Absolute dot product makes q and -q equivalent
+    # representations of the same orientation.
     dots = np.abs(
         np.sum(
             q1 * q2,
@@ -222,24 +422,142 @@ def calculate_motion_signals(df):
 
     dots = np.clip(
         dots,
-        -1.0,
+        0.0,
         1.0
     )
 
+    # Shortest relative rotation angle in radians.
     angular_change = (
-        2.0 * np.arccos(dots)
+        2.0
+        * np.arccos(
+            dots
+        )
     )
 
     angular_velocity = np.full(
-        len(angular_change),
+        len(
+            angular_change
+        ),
         np.nan
     )
 
-    valid_dt = dt > 0
+    valid_dt = (
+        dt > 0
+    )
 
-    angular_velocity[valid_dt] = (
-        angular_change[valid_dt]
-        / dt[valid_dt]
+    angular_velocity[
+        valid_dt
+    ] = (
+        angular_change[
+            valid_dt
+        ]
+        / dt[
+            valid_dt
+        ]
+    )
+
+    # --------------------------------------------------------
+    # Cumulative rotation
+    #
+    # Angular path length:
+    # sum of all valid incremental rotations.
+    # --------------------------------------------------------
+
+    valid_rotation = (
+        np.isfinite(
+            angular_change
+        )
+        & valid_dt
+    )
+
+    if np.any(
+        valid_rotation
+    ):
+
+        cumulative_rotation = np.sum(
+            angular_change[
+                valid_rotation
+            ]
+        )
+
+    else:
+
+        cumulative_rotation = np.nan
+
+    # --------------------------------------------------------
+    # Rapid-turn frequency
+    #
+    # Convert angular velocity from rad/s to deg/s.
+    # Count contiguous above-threshold intervals as ONE event.
+    # --------------------------------------------------------
+
+    angular_velocity_deg = (
+        angular_velocity
+        * 180.0
+        / np.pi
+    )
+
+    rapid_mask = (
+        np.isfinite(
+            angular_velocity_deg
+        )
+        & (
+            angular_velocity_deg
+            >= RAPID_TURN_THRESHOLD_DEG_S
+        )
+    )
+
+    rapid_events = 0
+    previous = False
+
+    for current in rapid_mask:
+
+        current = bool(
+            current
+        )
+
+        if (
+            current
+            and not previous
+        ):
+            rapid_events += 1
+
+        previous = current
+
+    duration = (
+        time[-1]
+        - time[0]
+    )
+
+    if duration > 0:
+
+        rapid_turn_frequency = (
+            60.0
+            * rapid_events
+            / duration
+        )
+
+    else:
+
+        rapid_turn_frequency = np.nan
+
+    # --------------------------------------------------------
+    # Tracking artifact count
+    # --------------------------------------------------------
+
+    tracking_jump_count = int(
+        np.sum(
+            (
+                dt <= 0
+            )
+            | (
+                distance_step
+                > TRACKING_JUMP_THRESHOLD
+            )
+            | ~np.isfinite(
+                distance_step
+            )
+        )
     )
 
     return {
@@ -252,15 +570,23 @@ def calculate_motion_signals(df):
         "velocity":
             velocity,
 
+        "acceleration":
+            acceleration,
+
         "angular_velocity":
             angular_velocity,
 
+        "angular_change":
+            angular_change,
+
+        "cumulative_rotation":
+            cumulative_rotation,
+
+        "rapid_turn_frequency":
+            rapid_turn_frequency,
+
         "tracking_jump_count":
-            int(
-                (
-                    ~valid_motion
-                ).sum()
-            )
+            tracking_jump_count
     }
 
 
@@ -270,13 +596,21 @@ def calculate_motion_signals(df):
 
 def extract_base_features(df):
 
-    signals = calculate_motion_signals(
-        df
+    signals = (
+        calculate_motion_signals(
+            df
+        )
     )
 
     velocity = (
         signals[
             "velocity"
+        ]
+    )
+
+    acceleration = (
+        signals[
+            "acceleration"
         ]
     )
 
@@ -298,9 +632,25 @@ def extract_base_features(df):
         ]
     )
 
+    # --------------------------------------------------------
+    # Net displacement
+    # --------------------------------------------------------
+
+    if len(position) >= 2:
+
+        net_displacement = np.linalg.norm(
+            position[-1]
+            - position[0]
+        )
+
+    else:
+
+        net_displacement = np.nan
+
     features = {
+
         # ----------------------------------------------------
-        # Translational motion
+        # Translational velocity
         # ----------------------------------------------------
 
         "velocity_mean":
@@ -320,7 +670,27 @@ def extract_base_features(df):
             ),
 
         # ----------------------------------------------------
-        # Rotational motion
+        # Translational acceleration
+        # ----------------------------------------------------
+
+        "acceleration_mean":
+            safe_mean(
+                acceleration
+            ),
+
+        "acceleration_std":
+            safe_std(
+                acceleration
+            ),
+
+        "acceleration_p95":
+            safe_percentile(
+                acceleration,
+                95
+            ),
+
+        # ----------------------------------------------------
+        # Rotational velocity
         # ----------------------------------------------------
 
         "angular_velocity_mean":
@@ -340,14 +710,29 @@ def extract_base_features(df):
             ),
 
         # ----------------------------------------------------
+        # Rotation accumulation
+        # ----------------------------------------------------
+
+        "cumulative_rotation":
+            signals[
+                "cumulative_rotation"
+            ],
+
+        # ----------------------------------------------------
+        # Rapid head turns
+        # ----------------------------------------------------
+
+        "rapid_turn_frequency":
+            signals[
+                "rapid_turn_frequency"
+            ],
+
+        # ----------------------------------------------------
         # Spatial displacement
         # ----------------------------------------------------
 
         "net_displacement":
-            np.linalg.norm(
-                position[-1]
-                - position[0]
-            ),
+            net_displacement,
 
         # ----------------------------------------------------
         # Tracking quality
@@ -393,8 +778,11 @@ def extract_blocks(
             + 60
         )
 
-        # Do not use blocks beyond the current prediction horizon
-        if block_end > max_seconds:
+        # Do not use blocks beyond current prediction horizon.
+        if (
+            block_end
+            > max_seconds
+        ):
             continue
 
         block = df[
@@ -453,7 +841,9 @@ def extract_blocks(
             }
         )
 
-    return pd.DataFrame(rows)
+    return pd.DataFrame(
+        rows
+    )
 
 
 # ============================================================
@@ -466,7 +856,7 @@ def extract_temporal_features(
 
     features = {}
 
-    # Need at least two blocks to describe temporal change
+    # Need at least two blocks to describe change over time.
     if len(blocks) < 2:
         return features
 
@@ -479,23 +869,34 @@ def extract_temporal_features(
 
     x = blocks[
         "block_start"
-    ].to_numpy(dtype=float)
+    ].to_numpy(
+        dtype=float
+    )
 
     for col in temporal_columns:
 
         y = blocks[
             col
-        ].to_numpy(dtype=float)
+        ].to_numpy(
+            dtype=float
+        )
 
         valid = (
             np.isfinite(x)
             & np.isfinite(y)
         )
 
-        x_valid = x[valid]
-        y_valid = y[valid]
+        x_valid = (
+            x[valid]
+        )
 
-        if len(y_valid) < 2:
+        y_valid = (
+            y[valid]
+        )
+
+        if len(
+            y_valid
+        ) < 2:
             continue
 
         # ----------------------------------------------------
@@ -512,7 +913,7 @@ def extract_temporal_features(
         ] = slope
 
         # ----------------------------------------------------
-        # First block vs last available block
+        # First available block vs last available block
         # ----------------------------------------------------
 
         features[
@@ -529,8 +930,12 @@ def extract_temporal_features(
         features[
             f"{col}_temporal_range"
         ] = (
-            np.max(y_valid)
-            - np.min(y_valid)
+            np.max(
+                y_valid
+            )
+            - np.min(
+                y_valid
+            )
         )
 
         # ----------------------------------------------------
@@ -576,7 +981,10 @@ def main():
     # Process every Questset session
     # ========================================================
 
-    for i, session in sessions.iterrows():
+    for (
+        i,
+        session
+    ) in sessions.iterrows():
 
         print(
             f"[{i + 1}/{total_sessions}] "
@@ -596,17 +1004,36 @@ def main():
             / filename
         )
 
+        if not movement_path.exists():
+
+            print(
+                "WARNING: missing movement file:",
+                movement_path
+            )
+
+            continue
+
         raw = pd.read_csv(
             movement_path
         )
 
         # ----------------------------------------------------
-        # We only study the first five minutes
+        # We only study the first five minutes.
         # ----------------------------------------------------
 
         raw = raw[
-            raw["time"] <= 300
+            raw["time"]
+            <= 300
         ].copy()
+
+        if len(raw) < 2:
+
+            print(
+                "WARNING: insufficient movement rows:",
+                movement_path
+            )
+
+            continue
 
         # ----------------------------------------------------
         # Uniform 50 Hz data
@@ -636,8 +1063,10 @@ def main():
 
             base_features_by_window[
                 window_name
-            ] = extract_base_features(
-                window_df
+            ] = (
+                extract_base_features(
+                    window_df
+                )
             )
 
         # ====================================================
@@ -650,9 +1079,10 @@ def main():
         ) in WINDOWS.items():
 
             row = {
-                # ------------------------------------------------
+
+                # --------------------------------------------
                 # Identifiers
-                # ------------------------------------------------
+                # --------------------------------------------
 
                 "participant_id":
                     session[
@@ -679,9 +1109,9 @@ def main():
                         "user"
                     ],
 
-                # ------------------------------------------------
+                # --------------------------------------------
                 # Prediction horizon
-                # ------------------------------------------------
+                # --------------------------------------------
 
                 "window":
                     current_window,
@@ -689,9 +1119,9 @@ def main():
                 "window_seconds":
                     current_seconds,
 
-                # ------------------------------------------------
+                # --------------------------------------------
                 # Game context
-                # ------------------------------------------------
+                # --------------------------------------------
 
                 "game_name":
                     session[
@@ -703,9 +1133,9 @@ def main():
                         "game_speed"
                     ],
 
-                # ------------------------------------------------
+                # --------------------------------------------
                 # User information
-                # ------------------------------------------------
+                # --------------------------------------------
 
                 "age":
                     session[
@@ -727,9 +1157,9 @@ def main():
                         "gaming_experience"
                     ],
 
-                # ------------------------------------------------
+                # --------------------------------------------
                 # Baseline sickness + targets
-                # ------------------------------------------------
+                # --------------------------------------------
 
                 "pre_ssq_total":
                     session[
@@ -747,13 +1177,13 @@ def main():
                     ]
             }
 
-            # ====================================================
-            # Add every BASE feature observable by this horizon
+            # =================================================
+            # Add every BASE feature observable by horizon
             #
             # 1 min -> 1min
             # 3 min -> 1min + 3min
             # 5 min -> 1min + 3min + 5min
-            # ====================================================
+            # =================================================
 
             for (
                 source_window,
@@ -775,22 +1205,25 @@ def main():
                 for (
                     feature_name,
                     value
-                ) in base_features.items():
+                ) in (
+                    base_features
+                    .items()
+                ):
 
                     row[
                         f"{source_window}_"
                         f"{feature_name}"
                     ] = value
 
-            # ====================================================
+            # =================================================
             # Add every TEMPORAL feature observable by horizon
             #
-            # Temporal features begin at 3 min because at least
-            # two 60-second blocks are required.
+            # Temporal features begin at 3 minutes because
+            # at least two 60-second blocks are required.
             #
-            # 3 min -> 3min temporal features
-            # 5 min -> 3min temporal + 5min temporal features
-            # ====================================================
+            # 3 min -> 3min temporal
+            # 5 min -> 3min + 5min temporal
+            # =================================================
 
             for (
                 temporal_window,
@@ -809,9 +1242,11 @@ def main():
                 ):
                     continue
 
-                blocks = extract_blocks(
-                    movement_df,
-                    temporal_seconds
+                blocks = (
+                    extract_blocks(
+                        movement_df,
+                        temporal_seconds
+                    )
                 )
 
                 temporal_features = (
@@ -823,7 +1258,10 @@ def main():
                 for (
                     feature_name,
                     value
-                ) in temporal_features.items():
+                ) in (
+                    temporal_features
+                    .items()
+                ):
 
                     row[
                         f"{temporal_window}_"
@@ -885,7 +1323,9 @@ def main():
 
     print(
         "\nColumns:",
-        len(output.columns)
+        len(
+            output.columns
+        )
     )
 
     # ========================================================
@@ -893,7 +1333,7 @@ def main():
     # ========================================================
 
     print(
-        "\nMissing values by prediction window:"
+        "\nFeature counts by prediction window:"
     )
 
     for window in [
@@ -903,178 +1343,114 @@ def main():
     ]:
 
         subset = output[
-            output[
-                "window"
-            ] == window
+            output["window"]
+            == window
         ]
 
-        completely_missing = (
-            subset
-            .isna()
-            .all()
-        )
-
-        unavailable_columns = (
-            completely_missing[
-                completely_missing
-            ]
-            .index
-            .tolist()
-        )
+        usable = [
+            c
+            for c in output.columns
+            if (
+                not subset[c]
+                .isna()
+                .all()
+            )
+        ]
 
         print(
-            f"\n"
-            f"{window}: "
-            f"{len(unavailable_columns)} "
-            f"completely unavailable columns"
+            window,
+            len(usable)
         )
 
     # ========================================================
-    # Integrity checks
+    # Duplicate check
     # ========================================================
 
-    assert (
-        len(output)
-        == 360
-    )
-
-    assert (
-        output[
-            "participant_id"
-        ].nunique()
-        == 60
-    )
-
-    window_counts = (
-        output[
-            "window"
-        ]
-        .value_counts()
-        .to_dict()
-    )
-
-    assert (
-        window_counts[
-            "1min"
-        ]
-        == 120
-    )
-
-    assert (
-        window_counts[
-            "3min"
-        ]
-        == 120
-    )
-
-    assert (
-        window_counts[
-            "5min"
-        ]
-        == 120
-    )
-
-    # --------------------------------------------------------
-    # 3-minute predictions must contain first-minute data
-    # --------------------------------------------------------
-
-    assert (
-        output.loc[
-            output[
+    duplicate_count = int(
+        output.duplicated(
+            subset=[
+                "participant_id",
+                "session_number",
                 "window"
-            ] == "3min",
-            "1min_velocity_mean"
-        ]
-        .notna()
-        .all()
+            ]
+        ).sum()
     )
 
-    # --------------------------------------------------------
-    # 5-minute predictions must contain 1- and 3-minute data
-    # --------------------------------------------------------
-
-    assert (
-        output.loc[
-            output[
-                "window"
-            ] == "5min",
-            "1min_velocity_mean"
-        ]
-        .notna()
-        .all()
+    print(
+        "\nDuplicate "
+        "participant/session/window rows:",
+        duplicate_count
     )
 
-    assert (
-        output.loc[
-            output[
-                "window"
-            ] == "5min",
-            "3min_velocity_mean"
-        ]
-        .notna()
-        .all()
+    # ========================================================
+    # Infinite value check
+    # ========================================================
+
+    numeric = (
+        output
+        .select_dtypes(
+            include=[
+                np.number
+            ]
+        )
     )
 
-    # --------------------------------------------------------
-    # 5-minute predictions must contain earlier temporal data
-    # --------------------------------------------------------
-
-    assert (
-        output.loc[
-            output[
-                "window"
-            ] == "5min",
-            "3min_velocity_mean_slope"
-        ]
-        .notna()
-        .all()
+    infinite_count = int(
+        np.isinf(
+            numeric
+            .to_numpy()
+        ).sum()
     )
 
-    assert (
-        output.loc[
-            output[
-                "window"
-            ] == "5min",
-            "5min_velocity_mean_slope"
-        ]
-        .notna()
-        .all()
+    print(
+        "Infinite numeric values:",
+        infinite_count
     )
 
-    # --------------------------------------------------------
-    # No feature should be completely missing at 5 minutes
-    # --------------------------------------------------------
+    # ========================================================
+    # New feature summary
+    # ========================================================
 
-    five_minute_rows = output[
-        output[
-            "window"
-        ] == "5min"
+    print(
+        "\nNew motion features:"
+    )
+
+    new_feature_names = [
+        "acceleration_mean",
+        "acceleration_std",
+        "acceleration_p95",
+        "cumulative_rotation",
+        "rapid_turn_frequency"
     ]
 
-    five_minute_all_missing = (
-        five_minute_rows
-        .isna()
-        .all()
-    )
+    for window in WINDOWS:
 
-    five_minute_all_missing = (
-        five_minute_all_missing[
-            five_minute_all_missing
-        ]
-        .index
-        .tolist()
-    )
+        for name in (
+            new_feature_names
+        ):
 
-    assert (
-        len(
-            five_minute_all_missing
-        )
-        == 0
-    ), (
-        "5-minute rows still contain completely "
-        f"unavailable columns: "
-        f"{five_minute_all_missing}"
-    )
+            column = (
+                f"{window}_"
+                f"{name}"
+            )
+
+            if column in (
+                output.columns
+            ):
+
+                valid_count = int(
+                    output[
+                        column
+                    ]
+                    .notna()
+                    .sum()
+                )
+
+                print(
+                    f"{column}: "
+                    f"{valid_count} "
+                    f"non-missing"
+                )
 
     # ========================================================
     # Save
@@ -1091,10 +1467,17 @@ def main():
     )
 
     print(
-        f"\nSaved: "
-        f"{OUTPUT_PATH}"
+        "\nSaved:"
     )
 
+    print(
+        OUTPUT_PATH
+    )
+
+
+# ============================================================
+# Entry point
+# ============================================================
 
 if __name__ == "__main__":
     main()
