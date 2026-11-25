@@ -1,0 +1,4 @@
+--- Running Simulation with Alpha = 0.5 ---
+User 1 Risk: 0.85
+User 2 Risk: 0.2
+User 3 Risk: 0.5
