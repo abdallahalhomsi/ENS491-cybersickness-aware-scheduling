@@ -12,5 +12,7 @@ User 3 Risk: 0.5 (Scheduler Priority weight: 1.5)
 User 1 | Risk: 0.85 | Priority Weight (1 + alpha * R): 1.85
 User 2 | Risk: 0.2 | Priority Weight (1 + alpha * R): 1.2
 User 3 | Risk: 0.5 | Priority Weight (1 + alpha * R): 1.5
+
+--- PACKET DELIVERY STATS ---
 Simulation finished successfully.
 Check FlowMonitor or pcap for detailed drop stats.

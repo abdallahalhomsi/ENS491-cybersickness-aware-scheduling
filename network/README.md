@@ -1,8 +1,15 @@
 # Network Simulation Module (ns-3 + vr-app)
 
-## Current Status: Fully Operational & Risk-Aware
+## Current Status: Risk-Aware Scheduler Implemented
 
-The ns-3 environment is fully built and running. The simulation now successfully ingests ML predictions from `ml_risk_scores.json` and applies the Risk-Aware scheduling formula alongside the standard EDF baseline.
+The ns-3 environment is fully built. We have successfully implemented the Risk-Aware scheduler in C++ (`vr-risk-scheduler.cc`).
+
+### Results
+The simulation successfully reads `ml_risk_scores.json` and applies the risk formula. We tested the priority weights at different alpha values:
+- **Alpha = 0 (EDF Baseline):** All users get a priority weight of 1.0 (equal treatment).
+- **Alpha = 1.0 (Risk-Aware):** The scheduler successfully prioritizes vulnerable users. User 1 (Risk 0.85) gets a priority weight of 1.85, while User 2 (Risk 0.20) gets 1.20.
+
+*Note: Per-user packet drop statistics (Jain's Fairness Index) require further modification of the `vr-app` source code to expose MAC-layer drop counters, which is designated as future work.*
 
 ## Realistic Network Parameters (NeSt-VR & VR Gaming 2025)
 
